@@ -1,0 +1,58 @@
+@media screen and (max-width: 600px) {
+    .dashboard-grid {
+        display: flex !important;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        margin-top: 3rem;
+    }
+
+    .small-log-food-button,
+    .small-link-styles {
+        transition: 125ms linear 50ms;
+        background-color: #60a5fa;
+        color: white;
+        font-weight: 700;
+        box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.5);
+        font-size: 1.5rem;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 125ms ease, background-color 300ms ease;
+    }
+
+    .small-log-food-button:hover,
+    .small-link-styles:hover {
+        transform: scale(1.05);
+        background-color: #3b82f6;
+        cursor: pointer;
+    }
+
+    .dashboard-title {
+        font-size: 1rem !important;
+        margin-bottom: 0.5rem;
+        grid-column: auto;
+        text-align: center;
+    }
+
+    .small-log-food-button,
+    .small-link-styles {
+        width: 100%;
+        height: auto;
+        padding: 1rem;
+        font-size: 1rem;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .small-link-styles {
+        display: flex !important;
+    }
+}
+
+.small-log-food-button:hover,
+.small-link-styles:hover {
+    transform: scale(1.05);
+    background-color: #3b82f6;
+    cursor: pointer;
+}
