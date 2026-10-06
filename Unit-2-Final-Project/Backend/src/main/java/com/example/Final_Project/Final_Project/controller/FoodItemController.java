@@ -16,7 +16,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("food-item")
-@CrossOrigin(origins = "http://localhost:5173")
 public class FoodItemController {
 
     @Autowired

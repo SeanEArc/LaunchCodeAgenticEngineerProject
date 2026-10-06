@@ -1,5 +1,6 @@
 package com.example.Final_Project.Final_Project.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
@@ -15,6 +16,13 @@ public class Users {
 
     private String name;
     private String username;
+
+    /**
+     * BCrypt hash. @JsonIgnore covers both directions: the hash is never
+     * serialized into any response, and an incoming body can never set it.
+     * Hashing happens in AuthService.
+     */
+    @JsonIgnore
     private String password;
     private Integer calorieGoal;
     private Integer proteinGoal;
