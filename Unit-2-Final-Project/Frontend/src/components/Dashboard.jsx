@@ -6,9 +6,22 @@ import { UserContext } from './UserContext';
 
 const Dashboard = () => {
     const [showModal, setShowModal] = useState(false);
-    const { user, setIsLoggedIn } = useContext(UserContext);
+    const [logoutError, setLogoutError] = useState(null);
+    const { user, logout } = useContext(UserContext);
 
     const navigate = useNavigate();
+
+    // Ends the backend session, not just the browser's idea of one.
+    const handleLogout = async () => {
+        setLogoutError(null);
+
+        try {
+            await logout();
+            navigate('/');
+        } catch (error) {
+            setLogoutError(`We could not log you out completely: ${error.message}`);
+        }
+    };
 
     //Reusable button
     const buttonStylings =
@@ -65,15 +78,16 @@ const Dashboard = () => {
 
                 <div>
                     <button
-                        onClick={() => {
-                            setIsLoggedIn(false);
-                            navigate('/');
-                        }}
+                        onClick={handleLogout}
                         className={`${buttonStylings} small-log-food-button `}
                     >
                         Log Out
                     </button>
                 </div>
+
+                {logoutError && (
+                    <p className="col-span-2 text-center text-red-500 font-medium">{logoutError}</p>
+                )}
 
                 {showModal && <AddFoodModal onClose={() => setShowModal(false)} />}
             </div>

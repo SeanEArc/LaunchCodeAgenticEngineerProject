@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { formatNumber, addedItems, getTodayDateString } from './foodStorage';
 import ConfirmationModal from './ConfirmationModal';
 import { BalancedMeal, Protein, Carbs, Fats } from '../assets/foodIcons/foodIcons';
@@ -9,6 +9,8 @@ import { deleteDailyLog, deleteFoodItem, getUserByID, updateFoodItem } from './f
 
 const CalorieHistory = () => {
     const { user, refreshKey } = useContext(UserContext);
+
+    const [loadError, setLoadError] = useState(null);
 
     const [editingFood, setEditingFood] = useState(null);
     const [editForm, setEditForm] = useState({
@@ -31,8 +33,22 @@ const CalorieHistory = () => {
     const totalCarbs = addedItems(trackedFood, 'carbs');
     const totalFat = addedItems(trackedFood, 'fat');
 
-    const displayAllUserFoodItems = async () => {
-        const allUserData = await getUserByID(user.id);
+    const displayAllUserFoodItems = useCallback(async () => {
+        // The route only renders once the session is restored, but a logout
+        // clears the user while this component is still mounted.
+        if (!user) return;
+
+        setLoadError(null);
+
+        let allUserData;
+
+        try {
+            allUserData = await getUserByID(user.id);
+        } catch (error) {
+            setLoadError(error.message);
+            return;
+        }
+
         const logsByDate = [];
 
         for (let i = 0; i < allUserData.loggedFoods.length; i++) {
@@ -63,23 +79,27 @@ const CalorieHistory = () => {
         const todayLog = logsByDate.find(log => log.date === today);
         const todaysFoodItems = todayLog ? todayLog.items : [];
         setTrackedFood(todaysFoodItems);
-    };
+    }, [user]);
 
     // Updates the item's displayed whenever the refreshKey is used.
     useEffect(() => {
         displayAllUserFoodItems();
-    }, [refreshKey]);
+    }, [refreshKey, displayAllUserFoodItems]);
 
     // Handle's delete entry. Deletes Daily Log if empty.
     const handleConfirmDelete = async () => {
         if (deleteIndex !== null) {
             const { foodId, itemId } = deleteIndex;
 
-            await deleteFoodItem(itemId);
+            try {
+                await deleteFoodItem(itemId);
 
-            await deleteDailyLog(foodId);
+                await deleteDailyLog(foodId);
 
-            await displayAllUserFoodItems();
+                await displayAllUserFoodItems();
+            } catch (error) {
+                setLoadError(error.message);
+            }
 
             setDeleteIndex(null);
         }
@@ -114,7 +134,14 @@ const CalorieHistory = () => {
             ingredients: editForm.ingredients,
         };
 
-        await updateFoodItem(editingFood.id, updatedFood);
+        try {
+            await updateFoodItem(editingFood.id, updatedFood);
+        } catch (error) {
+            // The edit was not saved, so the form stays open with the values.
+            setLoadError(error.message);
+            return;
+        }
+
         await displayAllUserFoodItems();
         setEditingFood(null);
     };
@@ -139,6 +166,19 @@ const CalorieHistory = () => {
 
     return (
         <div className="">
+            {loadError && (
+                <div className="mx-auto mt-6 max-w-[90%] text-center">
+                    <p className="text-red-500 font-medium">{loadError}</p>
+
+                    <button
+                        onClick={displayAllUserFoodItems}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600"
+                    >
+                        Try again
+                    </button>
+                </div>
+            )}
+
             <div className="history-container flex w-full max-w-[90%] justify-center items-center mx-auto mb-10">
                 <div className="flex-auto grid md:grid-cols-[60%_40%] mt-10">
                     {historicalLogs.length > 0 ? (
@@ -151,7 +191,7 @@ const CalorieHistory = () => {
                                         {log.date}
                                     </h3>
 
-                                    {log.items.map((food, index) => (
+                                    {log.items.map(food => (
                                         <div
                                             key={food.id}
                                             className="food-entry border p-3 m-2 rounded col-span-1"
