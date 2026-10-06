@@ -1,92 +1,71 @@
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useState } from 'react';
 import { UserContext } from './UserContext';
-import { deleteUser, updateUser } from './fetchUtils';
+import { updateUser } from './fetchUtils';
+
+// Keeps the context holding the same public fields as /auth/me, whatever else a
+// legacy endpoint happens to echo back.
+const toPublicUser = updated => ({
+    id: updated.id,
+    name: updated.name,
+    username: updated.username,
+    calorieGoal: updated.calorieGoal,
+    proteinGoal: updated.proteinGoal,
+});
 
 const AccountDetails = () => {
     const { user, setUser } = useContext(UserContext);
 
-    const [name, setName] = useState(user.name);
-    const [username, setUsername] = useState(user.username);
-    const [password, setPassword] = useState(user.password);
-    const [calorieGoal, setCalorieGoal] = useState(user.calorieGoal);
-    const [proteinGoal, setProteinGoal] = useState(user.proteinGoal);
+    const [name, setName] = useState(user.name ?? '');
+    const [username, setUsername] = useState(user.username ?? '');
+    const [calorieGoal, setCalorieGoal] = useState(user.calorieGoal ?? '');
+    const [proteinGoal, setProteinGoal] = useState(user.proteinGoal ?? '');
 
-    const [newPassword, setNewPassword] = useState('');
-    const [newPasswordConfirmation, setNewPasswordConfirmation] = useState('');
+    // One status per form, so a failed save never leaves a success message up.
+    const [detailsStatus, setDetailsStatus] = useState(null);
+    const [goalStatus, setGoalStatus] = useState(null);
 
+    // Only the fields the form owns are sent. Passwords are never included, so
+    // the stored hash cannot be overwritten from here.
     const updateUserInformation = async event => {
         event.preventDefault();
+        setDetailsStatus(null);
+
         try {
             const updatedUser = await updateUser(user.id, {
-                ...user,
                 name,
-                username,
-                password,
+                username: username.trim(),
             });
-            alert('User info updated successfully!');
+
+            setUser(toPublicUser(updatedUser));
+            setUsername(updatedUser.username ?? '');
+            setDetailsStatus({ ok: true, message: 'User info updated successfully.' });
         } catch (error) {
-            alert('Failed to update user info.');
+            setDetailsStatus({
+                ok: false,
+                message: `Failed to update user info: ${error.message}`,
+            });
         }
     };
 
     const updateUserGoal = async event => {
         event.preventDefault();
+        setGoalStatus(null);
 
         try {
             const updatedUser = await updateUser(user.id, {
-                ...user,
                 calorieGoal: parseInt(calorieGoal) || 0,
                 proteinGoal: parseInt(proteinGoal) || 0,
             });
-            alert('Goals updated successfully!');
+
+            setUser(toPublicUser(updatedUser));
+            setGoalStatus({ ok: true, message: 'Goals updated successfully.' });
         } catch (error) {
-            alert('Failed to update goals.');
+            setGoalStatus({ ok: false, message: `Failed to update goals: ${error.message}` });
         }
     };
 
-    const changePassword = async event => {
-        event.preventDefault();
-
-        if (password !== user.password) {
-            alert('Passwords do not match.');
-            return;
-        }
-
-        if (newPassword !== newPasswordConfirmation) {
-            alert('New password and confirmation do not match.');
-            return;
-        }
-
-        try {
-            const updatedUser = await updateUser(user.id, {
-                ...user,
-                password: newPassword,
-            });
-
-            setPassword('');
-            setNewPassword('');
-            setNewPasswordConfirmation('');
-        } catch (error) {
-            alert('Failed to update goals.');
-        }
-    };
-
-    const deleteAccount = async event => {
-        event.preventDefault();
-
-        const confirmed = window.confirm('Are you sure you want to delete your account?');
-        if (!confirmed) return;
-
-        try {
-            await deleteUser(user.id);
-
-            alert('Your account has been deleted');
-            setUser(null);
-            navigate('/login');
-        } catch (error) {
-            alert('Failed to delete account. Please try again later.');
-        }
-    };
+    const statusClasses = status =>
+        status.ok ? 'mt-3 font-medium text-green-700' : 'mt-3 font-medium text-red-500';
 
     return (
         <div className="max-w-6xl mx-auto p-6 text-center">
@@ -131,6 +110,10 @@ const AccountDetails = () => {
                             value="Submit"
                             className="mt-2 px-4 py-2 mt-4 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101"
                         />
+
+                        {goalStatus && (
+                            <p className={statusClasses(goalStatus)}>{goalStatus.message}</p>
+                        )}
                     </form>
                 </div>
 
@@ -169,20 +152,29 @@ const AccountDetails = () => {
                             value="Submit"
                             className="mt-2 px-4 py-2 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101"
                         />
+
+                        {detailsStatus && (
+                            <p className={statusClasses(detailsStatus)}>{detailsStatus.message}</p>
+                        )}
                     </form>
                 </div>
 
+                {/*
+                    Changing a password and deleting an account both need backend
+                    endpoints that do not exist yet. The controls stay visible but
+                    disabled so the gap is obvious rather than silent.
+                */}
                 <div className="mt-10 shadow-lg">
                     <h2 className="mb-3"> Update Password </h2>
 
-                    <form id="Update Password" onSubmit={changePassword} className="border p-10">
+                    <div className="border p-10">
                         <h3 className="mt-3"> Current Password </h3>
                         <label className="font-bold flex flex-col text-md">
                             <input
                                 type="password"
                                 placeholder="Enter Current Password"
-                                onChange={event => setPassword(event.target.value)}
-                                className="mt-1 p-1 rounded-md border border-zinc-300 "
+                                disabled
+                                className="mt-1 p-1 rounded-md border border-zinc-300 bg-gray-100 text-gray-500"
                             />
                         </label>
 
@@ -191,8 +183,8 @@ const AccountDetails = () => {
                             <input
                                 type="password"
                                 placeholder="Enter New Password"
-                                onChange={event => setNewPassword(event.target.value)}
-                                className="mt-1 p-1 rounded-md border border-zinc-300 "
+                                disabled
+                                className="mt-1 p-1 rounded-md border border-zinc-300 bg-gray-100 text-gray-500"
                             />
                         </label>
 
@@ -200,25 +192,37 @@ const AccountDetails = () => {
                             <input
                                 type="password"
                                 placeholder="Re-enter New Password"
-                                onChange={event => setNewPasswordConfirmation(event.target.value)}
-                                className="mt-1 p-1 rounded-md border border-zinc-300 "
+                                disabled
+                                className="mt-1 p-1 rounded-md border border-zinc-300 bg-gray-100 text-gray-500"
                             />
                         </label>
-                        <input
-                            type="submit"
-                            value="Submit"
-                            className="mt-2 px-4 py-2 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101"
-                        />
-                    </form>
+
+                        <button
+                            type="button"
+                            disabled
+                            className="mt-4 px-4 py-2 bg-gray-300 text-gray-600 shadow-md rounded cursor-not-allowed"
+                        >
+                            Submit
+                        </button>
+
+                        <p className="mt-3 font-medium text-gray-600">
+                            Changing your password is temporarily unavailable.
+                        </p>
+                    </div>
                 </div>
 
                 <div className="mt-10">
                     <button
-                        onClick={deleteAccount}
-                        className="mt-2 px-4 py-2 bg-red-500 text-white shadow-md rounded hover:bg-red-600 hover:scale-101"
+                        type="button"
+                        disabled
+                        className="mt-2 px-4 py-2 bg-gray-300 text-gray-600 shadow-md rounded cursor-not-allowed"
                     >
                         Delete Account
                     </button>
+
+                    <p className="mt-3 font-medium text-gray-600">
+                        Deleting your account is temporarily unavailable.
+                    </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 sm:grid-cols-1 my-10 md:mx-10 sm:w-full">

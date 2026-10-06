@@ -1,7 +1,7 @@
 import { useState, useRef, useContext } from 'react';
 import { UserContext } from './UserContext';
 import { getFormattedDate, convertIngredientStringToArray } from './AddFoodUtil';
-import { createNewDailyId, getUserByID } from './fetchUtils';
+import { createFoodItem, createNewDailyId, getUserByID } from './fetchUtils';
 
 // When onClose is equal to true, AddFoodModal will close
 const AddFoodModal = ({ onClose, onFoodAdded }) => {
@@ -14,6 +14,8 @@ const AddFoodModal = ({ onClose, onFoodAdded }) => {
     const [fat, setFat] = useState('');
     const [ingredients, setIngredients] = useState('');
     const [date, setDate] = useState(getFormattedDate());
+    const [error, setError] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
 
     const modalRef = useRef();
 
@@ -28,42 +30,18 @@ const AddFoodModal = ({ onClose, onFoodAdded }) => {
 
         const cleanedIngredients = convertIngredientStringToArray(ingredients);
 
-        // We need to modularize this portion:
-        const newItemLogged = {
-            foodName: foodName,
-            calories: Number(calories),
-            date: String(date),
-            protein: Number(protein),
-            carbs: Number(carbs),
-            fat: Number(fat),
-            ingredients: cleanedIngredients,
-        };
+        setError(null);
+        setIsSaving(true);
 
-        let existingDate = false;
-        let loggedFoodId = null;
+        try {
+            let existingDate = false;
+            let loggedFoodId = null;
 
-        // Fetching data
-        // Calls user data by id.
-        const getUser = await getUserByID(user.id);
-
-        //Checks if date under loggedFoods exsist
-        for (let i = 0; i < getUser.loggedFoods.length; i++) {
-            if (getUser.loggedFoods[i].date == date) {
-                existingDate = true;
-                loggedFoodId = getUser.loggedFoods[i].foodId;
-                break;
-            }
-        }
-
-        // Create's new daily log if it does not exsist yet.
-        if (!existingDate) {
-            const newLoggedDate = await createNewDailyId(date, user.id);
-        }
-
-        if (!loggedFoodId) {
-            // Calls user data by id to check again.
+            // Fetching data
+            // Calls user data by id.
             const getUser = await getUserByID(user.id);
 
+            //Checks if date under loggedFoods exsist
             for (let i = 0; i < getUser.loggedFoods.length; i++) {
                 if (getUser.loggedFoods[i].date == date) {
                     existingDate = true;
@@ -71,27 +49,42 @@ const AddFoodModal = ({ onClose, onFoodAdded }) => {
                     break;
                 }
             }
-        }
 
-        // Creates new food item.
-        const postFoodItemResponse = await fetch(
-            `http://localhost:8080/food-item/add/${loggedFoodId}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    foodName: foodName,
-                    calories: calories,
-                    protein: protein,
-                    carbs: carbs,
-                    fat: fat,
-                    ingredients: cleanedIngredients,
-                }),
+            // Create's new daily log if it does not exsist yet.
+            if (!existingDate) {
+                await createNewDailyId(date, user.id);
             }
-        );
 
-        if (postFoodItemResponse.ok) {
+            if (!loggedFoodId) {
+                // Calls user data by id to check again.
+                const reloadedUser = await getUserByID(user.id);
+
+                for (let i = 0; i < reloadedUser.loggedFoods.length; i++) {
+                    if (reloadedUser.loggedFoods[i].date == date) {
+                        loggedFoodId = reloadedUser.loggedFoods[i].foodId;
+                        break;
+                    }
+                }
+            }
+
+            // Creates new food item.
+            await createFoodItem(loggedFoodId, {
+                foodName: foodName,
+                calories: Number(calories),
+                protein: Number(protein),
+                carbs: Number(carbs),
+                fat: Number(fat),
+                ingredients: cleanedIngredients,
+            });
+
             triggerRefreshKey();
+        } catch (saveError) {
+            // The entry was not saved, so the form keeps its values and stays
+            // open instead of reporting success.
+            setError(saveError.message);
+            return;
+        } finally {
+            setIsSaving(false);
         }
 
         // Clear's form after submit
@@ -209,13 +202,17 @@ const AddFoodModal = ({ onClose, onFoodAdded }) => {
 
                     <hr className="mb-1 border-t border-zinc-300 opacity-50" />
 
+                    {error && <p className="text-red-500 font-medium text-center">{error}</p>}
+
                     <input
                         type="submit"
-                        value="Submit"
-                        className="mt-2 px-4 py-2 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101"
+                        value={isSaving ? 'Saving...' : 'Submit'}
+                        disabled={isSaving}
+                        className="mt-2 px-4 py-2 bg-blue-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101 disabled:opacity-60"
                     />
 
                     <button
+                        type="button"
                         onClick={onClose}
                         className="mt-2 px-4 py-2 bg-red-500 text-white shadow-md rounded hover:bg-red-600 hover:scale-101"
                     >

@@ -1,165 +1,68 @@
-// Fetch all data.
-export async function fetchGetData(url) {
-    const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
+// Calls against the existing user/food endpoints. Everything goes through
+// apiRequest so each one sends the session cookie and, for mutations, the CSRF
+// header.
 
-    const data = await response.json();
-    return data;
-}
+import { apiRequest } from '../api/client';
 
-// Post new user
-export async function postUserData(url, name, username, password, calorieGoal, proteinGoal) {
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            name: name,
-            username: username,
-            password: password,
-            calorieGoal: calorieGoal,
-            proteinGoal: proteinGoal,
-        }),
-    });
-
-    const data = await response.json();
-    return data;
-}
-
-// Call user by id
+// Call user by id. Returns the user with their nested loggedFoods.
 export async function getUserByID(userId) {
-    const response = await fetch(`http://localhost:8080/users/${userId}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    const userData = await response.json();
-
-    return userData;
+    return apiRequest(`/users/${userId}`);
 }
 
 // Create Logged-Food Item
 export async function createNewDailyId(date, user) {
-    const postResponse = await fetch('http://localhost:8080/logged-foods/add', {
+    return apiRequest('/logged-foods/add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
             date: date,
             user: { id: user },
             loggedFoodItems: [],
-        }),
+        },
     });
+}
 
-    const data = await postResponse.json();
-    return data;
+// Create a food item under a daily log.
+export async function createFoodItem(loggedFoodId, foodItem) {
+    return apiRequest(`/food-item/add/${loggedFoodId}`, {
+        method: 'POST',
+        body: foodItem,
+    });
 }
 
 //Delete foodItem
 export async function deleteFoodItem(id) {
-    const response = await fetch(`http://localhost:8080/food-item/${id}`, {
+    return apiRequest(`/food-item/${id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        parseAs: 'text',
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to delete: ${errorText}`);
-    }
-
-    return await response.text();
 }
 
 // Delete's DailyLoggedFood DailyLog is empty.
 export async function deleteDailyLog(id) {
-    // Get the loggedFood by ID
-    const responseGet = await fetch(`http://localhost:8080/logged-foods/${id}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!responseGet.ok) {
-        const errorText = await responseGet.text();
-        throw new Error(`Failed to fetch log: ${errorText}`);
-    }
-
-    const userData = await responseGet.json();
+    const dailyLog = await apiRequest(`/logged-foods/${id}`);
 
     //Only delete's DailyLog if no food items
-    if (userData.loggedFoodItems.length === 0) {
-        const responseDelete = await fetch(`http://localhost:8080/logged-foods/${id}`, {
+    if (dailyLog.loggedFoodItems.length === 0) {
+        return apiRequest(`/logged-foods/${id}`, {
             method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+            parseAs: 'text',
         });
-
-        if (!responseDelete.ok) {
-            const errorText = await responseDelete.text();
-            throw new Error(`Failed to delete: ${errorText}`);
-        }
-
-        const message = await responseDelete.text();
-
-        return message;
     }
 }
 
 //Edit's userResponse
 export async function updateFoodItem(foodId, updatedData) {
-    const response = await fetch(`http://localhost:8080/food-item/update/${foodId}`, {
+    return apiRequest(`/food-item/update/${foodId}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData),
+        body: updatedData,
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update: ${errorText}`);
-    }
-
-    return await response.json();
 }
 
-// Updated user information
+// Updated user information. Only the fields being changed are sent; the backend
+// keeps the stored password hash and any field left out.
 export async function updateUser(userId, updatedData) {
-    const response = await fetch(`http://localhost:8080/users/update/${userId}`, {
+    return apiRequest(`/users/update/${userId}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updatedData),
+        body: updatedData,
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update: ${errorText}`);
-    }
-
-    return await response.json();
-}
-
-// Delete Account:
-export async function deleteUser(id) {
-    //Only delete's DailyLog if no food items
-
-    const responseDelete = await fetch(`http://localhost:8080/users/delete/${id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!responseDelete.ok) {
-        const errorText = await responseDelete.text();
-        throw new Error(`Failed to delete: ${errorText}`);
-    }
-
-    const message = await responseDelete.text();
-
-    return message;
 }

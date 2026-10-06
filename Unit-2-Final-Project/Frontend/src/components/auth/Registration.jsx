@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { postUserData, fetchGetData } from '../fetchUtils';
+import { register } from '../../api/auth';
+import { ApiError, NetworkError } from '../../api/client';
 
 const Registration = () => {
     const [username, setUsername] = useState('');
@@ -8,7 +9,7 @@ const Registration = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [name, setName] = useState('');
-    const [isValid, setIsValid] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [calorieGoal, setCalorieGoal] = useState('');
     const [proteinGoal, setProteinGoal] = useState('');
 
@@ -17,44 +18,44 @@ const Registration = () => {
     const handleSubmit = async event => {
         event.preventDefault();
         setError('');
-        setIsValid(true);
+
+        const trimmedUsername = username.trim();
 
         if (password !== confirmPassword) {
             setError('Passwords do not match');
-            setIsValid(false);
             return;
         }
 
-        if (username.length < 5 || password.length <= 5) {
+        if (trimmedUsername.length < 5 || password.length <= 5) {
             setError('Username or Password is not valid');
-            setIsValid(false);
             return;
         }
+
+        setIsSubmitting(true);
 
         try {
-            const getAllUsers = await fetchGetData('http://localhost:8080/users/all');
+            // Registration does not establish a session; the backend answers 409
+            // when the username is taken, so the old "download every user and
+            // compare" check is gone.
+            await register({
+                name,
+                username: trimmedUsername,
+                password,
+                calorieGoal,
+                proteinGoal,
+            });
 
-            for (let i = 0; i < getAllUsers.length; i++) {
-                if (username == getAllUsers[i].username) {
-                    setError('This username is already taken, please try another one');
-                    setIsValid(false);
-                    return;
-                }
+            navigate('/');
+        } catch (registrationError) {
+            if (registrationError instanceof ApiError && registrationError.status === 409) {
+                setError('This username is already taken, please try another one');
+            } else if (registrationError instanceof NetworkError) {
+                setError(registrationError.message);
+            } else {
+                setError(registrationError.message);
             }
-
-            if (isValid) {
-                const postingUserData = await postUserData(
-                    'http://localhost:8080/users/add',
-                    name,
-                    username,
-                    password,
-                    calorieGoal,
-                    proteinGoal
-                );
-                navigate('/');
-            }
-        } catch (error) {
-            setError(error.message);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -151,13 +152,14 @@ const Registration = () => {
                         </p>
                     </div>
 
-                    {error && <p className="error">{error}</p>}
+                    {error && <p className="error text-red-500 font-medium">{error}</p>}
 
                     <button
                         type="submit"
-                        className="mt-2 px-4 py-2 bg-green-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101"
+                        disabled={isSubmitting}
+                        className="mt-2 px-4 py-2 bg-green-500 text-white shadow-md rounded hover:cursor-pointer hover:bg-blue-600 hover:scale-101 disabled:opacity-60"
                     >
-                        Register
+                        {isSubmitting ? 'Registering...' : 'Register'}
                     </button>
                 </form>
             </div>

@@ -9,25 +9,45 @@ import HowItWorks from './components/HowItWorks';
 import LoginPage from './components/auth/LoginPage';
 import Registration from './components/auth/Registration';
 import AccountDetails from './components/AccountDetails.jsx';
+import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 const App = () => {
-    // Handles Quick Log
-    const handleAddEntry = newEntry => {
-        setEntries(prev => [...prev, newEntry]);
-    };
-
     return (
         <div className="App">
-            {<TopOfPage onSubmitEntry={handleAddEntry} />}
+            {<TopOfPage />}
 
             <Routes>
                 <Route path="/" element={<LoginPage />} />
                 <Route path="/register" element={<Registration />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/calorieHistory" element={<CalorieHistory />} />
                 <Route path="/howItWorks" element={<HowItWorks />} />
                 <Route path="/about" element={<AboutPage />} />
-                <Route path="/accountDetails" element={<AccountDetails />} />
+
+                <Route
+                    path="/dashboard"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/calorieHistory"
+                    element={
+                        <ProtectedRoute>
+                            <CalorieHistory />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/accountDetails"
+                    element={
+                        <ProtectedRoute>
+                            <AccountDetails />
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
 
             <Footer />
