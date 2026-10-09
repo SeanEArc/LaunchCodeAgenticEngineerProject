@@ -1,101 +1,106 @@
 # 1. Quality Rubric
 
+This rubric evaluates the agent's human-readability review. A review can pass when it accurately identifies difficult-to-read code; the codebase's readability is assessed separately.
+
 ## 1.1 Dimensions
 
-### 1.1.1 Build Command
+### 1.1.1 Review Coverage
 
-Checks whether the agent finds and runs the correct Docker build command.
+Checks whether the agent inspects relevant frontend and backend code and states its scope and limitations.
 
-### 1.1.2 Build Result
+### 1.1.2 Readability Assessment
 
-Checks whether the agent correctly reports the result of the Docker build.
+Checks whether the agent evaluates naming, structure and control flow, organization and consistency, and comments and documentation using project conventions.
 
-### 1.1.3 Warnings and Errors
+### 1.1.3 Evidence and Explanation
 
-Checks whether the agent reports important warnings and errors from the build.
+Checks whether findings accurately reference code and explain its effect on human understanding.
 
-### 1.1.4 Recommendation
+### 1.1.4 Recommendations and Report Clarity
 
-Checks whether the agent gives the correct recommendation based on the build result.
+Checks whether the agent provides prioritized, actionable improvements and a clear overall assessment supported by findings.
 
 ## Scoring Guide
 
-### Build Command
+Score each dimension from 1 to 4 using the descriptions below.
 
-**1 - Does Not Meet:** The agent runs the wrong build command.
+### Review Coverage
 
-Example: The project documents one Docker build command, but the agent guesses and runs a different command.
+**1 - Does Not Meet:** The agent does not inspect source code or claims coverage it did not perform.
 
-**2 - Partially Meets:** The agent finds the correct command but runs it incorrectly or from the wrong location.
+Example: The agent declares the code readable based only on a successful Docker build.
 
-Example: The agent finds the documented command but runs it from the wrong directory.
+**2 - Partially Meets:** The agent inspects a narrow area and leaves significant omissions unexplained.
 
-**3 - Meets:** The agent runs the correct documented command from the correct location.
+Example: The agent reviews one React component without addressing the backend or stating the limitation.
 
-Example: The agent finds the build command in the project documentation and runs it correctly.
+**3 - Meets:** The agent reviews frontend and backend code, supporting tests and configuration, and documentation. It identifies inspected areas, coverage limitations, and any inaccessible areas.
 
-**4 - Exceeds:** The agent runs the correct command and clearly explains where it found the command.
+Example: The report lists inspected components, API helpers, controllers, and services and states which areas were not reviewed.
 
-Example: The agent states that it found the command in the README and then runs it from the correct directory.
+**4 - Exceeds:** The agent also traces representative user flows across related files and explains why its coverage supports the assessment.
 
-### Build Result
+Example: The agent follows login from the form through the API client to the backend controller and service.
 
-**1 - Does Not Meet:** The agent reports the wrong result.
+### Readability Assessment
 
-Example: The build fails, but the agent reports that it succeeded.
+**1 - Does Not Meet:** The assessment is unsupported or equates readability with compilation, lint results, or personal taste.
 
-**2 - Partially Meets:** The agent's result is unclear or incomplete.
+Example: The agent says the code is readable because it builds successfully.
 
-Example: The build succeeds, but the agent does not clearly state whether it passed or failed.
+**2 - Partially Meets:** The agent evaluates some concerns but misses major dimensions or treats preferences as requirements.
 
-**3 - Meets:** The agent correctly reports whether the build succeeded or failed.
+Example: The report discusses formatting but ignores confusing names and deeply nested logic.
 
-Example: The build completes successfully and the agent reports that it succeeded.
+**3 - Meets:** The agent evaluates naming, structure and control flow, organization and consistency, and comments and documentation. It distinguishes obstacles to understanding from optional preferences.
 
-**4 - Exceeds:** The agent correctly reports the result and provides evidence from the build output.
+Example: The report explains whether names communicate intent, responsibilities are focused, patterns are consistent, and comments clarify non-obvious behavior.
 
-Example: The agent reports that the build succeeded and points to the successful completion of the Docker build as evidence.
+**4 - Exceeds:** The agent also explains tradeoffs in the project's context and identifies readable patterns worth preserving when present.
 
-### Warnings and Errors
+Example: The report explains how a focused helper clarifies a component while identifying an abstraction that makes a simple operation harder to trace.
 
-**1 - Does Not Meet:** The agent misses important warnings or errors.
+### Evidence and Explanation
 
-Example: The build contains an error, but the agent reports that no errors were found.
+**1 - Does Not Meet:** Findings are invented, contradict the code, or lack supporting references.
 
-**2 - Partially Meets:** The agent reports some issues but misses others.
+Example: The agent claims a function contains nested conditionals that are not present.
 
-Example: The agent reports an error but ignores an important warning from the build output.
+**2 - Partially Meets:** Some findings are accurate, but references or explanations are incomplete.
 
-**3 - Meets:** The agent reports all important warnings and errors.
+Example: The agent calls a component confusing without identifying the relevant code or explaining why.
 
-Example: The agent lists the important warnings and errors shown during the build.
+**3 - Meets:** Findings include accurate file paths and line references and explain the effect on understanding. Conclusions stay within the inspected scope.
 
-**4 - Exceeds:** The agent reports the issues and explains why they matter.
+Example: The report references a vague variable name and explains what meaning a reader must infer from its usage.
 
-Example: The agent identifies a warning and explains how it could affect the Docker image or application.
+**4 - Exceeds:** The evidence also connects related code where necessary and makes findings easy to verify without overstating certainty.
 
-### Recommendation
+Example: The report references a caller and helper to show how inconsistent naming obscures the same concept across files.
 
-**1 - Does Not Meet:** The recommendation does not match the build result.
+### Recommendations and Report Clarity
 
-Example: The build fails, but the agent recommends moving forward.
+**1 - Does Not Meet:** Recommendations are missing, contradict findings, or require unnecessary behavior changes.
 
-**2 - Partially Meets:** The recommendation is unclear.
+Example: The agent recommends replacing the application framework without tying that change to a readability issue.
 
-Example: The agent reports that the build succeeded but does not clearly say whether the project should move forward.
+**2 - Partially Meets:** Recommendations are vague, unprioritized, or the overall assessment is unclear.
 
-**3 - Meets:** The recommendation matches the build result.
+Example: The agent says to "clean up the code" without identifying a concrete next step.
 
-Example: The build succeeds and the agent recommends moving forward.
+**3 - Meets:** The report uses plain language, prioritizes issues by high, medium, or low impact, and recommends specific improvements intended to preserve behavior. The overall assessment matches the evidence, including when no significant issues are found.
 
-**4 - Exceeds:** The recommendation matches the result and explains what should happen next.
+Example: The agent recommends renaming an ambiguous helper and extracting a focused operation, explains their priority, and states any uncertainty about preserving behavior.
 
-Example: The build fails, the agent recommends not moving forward, and explains what issue should be fixed first.
+**4 - Exceeds:** The report also explains expected readability benefits and a practical order for addressing related findings.
+
+Example: The agent recommends clarifying shared terminology first, then simplifying dependent functions to use that vocabulary consistently.
 
 ## Pass Threshold
 
 A run passes if:
 
 - The total score is at least 12 out of 16.
-- Build Result must score at least 3 out of 4.
-- Recommendation must score at least 3 out of 4.
+- Every dimension scores at least 3 out of 4.
+
+Report each dimension's score with a brief justification and the total. The threshold measures review quality; report the codebase's overall readability assessment separately.
